@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean Shaka Player</title>
+    <!-- Shaka Player UI & CSS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/shaka-player.ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.11/controls.min.css">
+    <style>
+        /* Fullscreen Clean Style */
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        .video-container { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        video { width: 100%; height: 100%; }
+        /* Hide native focus outline */
+        *:focus { outline: none; }
+    </style>
+</head>
+<body>
+
+<div class="video-container" data-shaka-player-container>
+    <video id="video" autoplay data-shaka-player></video>
+</div>
+
+<script>
+    async function init() {
+        // Retrieve URL parameter '?play='
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamUrl = urlParams.get('play');
+
+        if (!streamUrl) {
+            console.error("No stream URL provided! Use ?play=LINK");
+            return;
+        }
+
+        const video = document.getElementById('video');
+        const ui = video['ui'];
+        const controls = ui.getControls();
+        const player = controls.getPlayer();
+
+        // --- BUFFER & SMOOTH PLAY CONFIGURATION ---
+        player.configure({
+            streaming: {
+                rebufferingGoal: 2, 
+                abr: { 
+                    enabled: true,
+                    defaultBandwidthEstimate: 500000 
+                },
+                retryParameters: {
+                    maxAttempts: 4,
+                    baseDelay: 1000,
+                    backoffFactor: 2
+                }
+            }
+        });
+
+        // Error Handling
+        player.addEventListener('error', (event) => {
+            console.error('Error code', event.detail.code, 'object', event.detail);
+        });
+
+        // Load Stream
+        try {
+            await player.load(streamUrl);
+            console.log("Playing:", streamUrl);
+        } catch (e) {
+            console.error("Load Error:", e);
+        }
+    }
+
+    document.addEventListener('shaka-ui-loaded', init);
+</script>
+
+</body>
+</html>
